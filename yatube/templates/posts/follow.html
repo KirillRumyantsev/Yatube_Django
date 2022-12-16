@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    Избранные посты
+{% endblock %}
+
+{% block content %}
+{% include 'posts/includes/switcher.html' %}
+{% load cache %} 
+{% cache 20 index_page page_obj%}
+
+  <div class="container py-3">
+
+    {% for post in page_obj %}
+
+      {% include 'posts/includes/post_card.html' with show_group_link=True show_profile_link=True %}
+    
+    {% endfor %}
+
+  </div>
+{% include 'posts/includes/paginator.html' %}
+{% endcache %}
+{% endblock %}   

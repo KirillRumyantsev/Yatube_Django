@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Об авторе проекта{% endblock %}
+{% block content %}
+{% load static %}
+<div class="container py-2">
+  <h5 class="card-header">Привет, меня зовут Кирилл, я автор проекта Yatube</h5>
+    <div class="card-body">
+      <h6 class="card-subtitle">10 ноября 2022 года</h6>
+      <p>
+        Именно в этот день произошел торжественный запуск социальной сети блогеров Yatube
+      </p>
+      <p>
+      Основная концепция проекта - это создание площадки для свободного выражение своих идей и мыслей, 
+      а также объединение людей в сообщества схожие по взглядам  
+      </p>
+    </div>
+    <div class="container py-2">
+      <p>За этим рабочим местом был создан Yatube</p>
+      <img src="{% static 'img/table.png' %}" width="700" height="700">
+    </div>
+  <div class="col-md-6 offset-md-4">
+    <a href="https://github.com/KirillRumyantsev" style="border-bottom: 2px dotted lightskyblue; text-decoration: none;">Мой профиль на GitHub</a>
+  </div>
+</div>
+{% endblock %}
