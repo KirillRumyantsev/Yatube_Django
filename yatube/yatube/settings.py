@@ -19,7 +19,7 @@ CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
     }
-} 
+}
 
 INSTALLED_APPS = [
     'posts.apps.PostsConfig',
