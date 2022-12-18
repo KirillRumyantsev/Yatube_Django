@@ -1,3 +1,4 @@
+from django.core.cache import cache
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
 from django.urls import reverse
@@ -42,6 +43,11 @@ class PostURLTests(TestCase):
                 "posts:post_edit", kwargs={"post_id": cls.post.id}
             ), "posts/create_post.html"),
             (reverse("posts:post_create"), "posts/create_post.html"),
+        ]
+        cls.form_fields = [
+            (("text"), (forms.fields.CharField)),
+            (("group"), (forms.fields.ChoiceField)),
+            (("image"), (forms.fields.ImageField)),
         ]
 
     def setUp(self):
@@ -90,12 +96,8 @@ class PostURLTests(TestCase):
         response = self.authorized_client.get(
             reverse("posts:post_edit", kwargs={"post_id": self.post.id})
         )
-        form_fields = {
-            "text": forms.fields.CharField,
-            "group": forms.fields.ChoiceField,
-            'image': forms.fields.ImageField,
-        }
-        for value, expected in form_fields.items():
+        form_fields = self.form_fields
+        for value, expected in form_fields:
             with self.subTest(value=value):
                 form_field = response.context.get('form').fields.get(value)
                 self.assertIsInstance(form_field, expected)
@@ -103,29 +105,24 @@ class PostURLTests(TestCase):
     def test_create_show_correct_context(self):
         """Шаблон create сформирован с правильным контекстом."""
         response = self.authorized_client.get(reverse("posts:post_create"))
-        form_fields = {
-            "text": forms.fields.CharField,
-            "group": forms.fields.ChoiceField,
-            'image': forms.fields.ImageField,
-
-        }
-        for value, expected in form_fields.items():
+        form_fields = self.form_fields
+        for value, expected in form_fields:
             with self.subTest(value=value):
                 form_field = response.context.get('form').fields.get(value)
                 self.assertIsInstance(form_field, expected)
 
     def test_check_group_in_pages(self):
         """Проверяем создание поста на страницах с выбранной группой"""
-        form_fields = {
-            reverse("posts:index"): self.post,
-            reverse(
+        form_fields = [
+            (reverse("posts:index"), self.post),
+            (reverse(
                 "posts:group_list", kwargs={"slug": self.group.slug}
-            ): self.post,
-            reverse(
+            ), self.post),
+            (reverse(
                 "posts:profile", kwargs={"username": self.post.author}
-            ): self.post,
-        }
-        for value, expected in form_fields.items():
+            ), self.post),
+        ]
+        for value, expected in form_fields:
             with self.subTest(value=value):
                 response = self.authorized_client.get(value)
                 form_field = response.context["page_obj"]
@@ -133,55 +130,80 @@ class PostURLTests(TestCase):
 
     def test_check_group_not_in_mistake_group_list_page(self):
         """Проверяем чтобы созданный Пост с группой не попап в чужую группу."""
-        form_fields = {
-            reverse(
-                "posts:group_list", kwargs={"slug": self.group.slug}
-            ): Post.objects.exclude(group=self.post.group),
-        }
-        for value, expected in form_fields.items():
-            with self.subTest(value=value):
-                response = self.authorized_client.get(value)
-                form_field = response.context["page_obj"]
-                self.assertNotIn(expected, form_field)
+        res_1 = self.authorized_client.get(reverse("posts:group_list",
+                                           kwargs={"slug": self.group.slug}))
+        context = res_1.context["page_obj"]
+        expected = Post.objects.exclude(group=self.post.group)
+        self.assertNotIn(expected, context)
 
     def test_nonexist_page_uses_correct_template(self):
         """Страница 404 отдаёт кастомный шаблон."""
         response = self.client.get('/nonexist-page/')
         self.assertTemplateUsed(response, 'core/404.html')
 
+    def test_image_in_index_and_profile_page(self):
+        """Картинка передается на страницу index_group_list_and_profile."""
+        templates = (
+            reverse("posts:index"),
+            reverse("posts:group_list", kwargs={"slug": self.group.slug}),
+            reverse("posts:profile", kwargs={"username": self.post.author}),
+        )
+        for url in templates:
+            with self.subTest(url):
+                response = self.authorized_client.get(url)
+                context = response.context["page_obj"][0]
+                self.assertEqual(context.image, self.post.image)
+
+    def test_image_in_post_detail_page(self):
+        """Картинка передается на страницу post_detail."""
+        response = self.authorized_client.get(
+            reverse("posts:post_detail", kwargs={"post_id": self.post.id})
+        )
+        context = response.context["post"]
+        self.assertEqual(context.image, self.post.image)
+
     def test_check_cache(self):
         """Проверка кеша."""
         response = self.authorized_client.get(reverse("posts:index"))
         r_1 = response.content
-        Post.objects.get(id=1).delete()
+        Post.objects.get(id=self.post.id).delete()
         response2 = self.authorized_client.get(reverse("posts:index"))
         r_2 = response2.content
+        cache.clear()
+        response3 = self.authorized_client.get(reverse("posts:index"))
+        r_3 = response3.content
         self.assertEqual(r_1, r_2)
+        self.assertNotEqual(r_2, r_3)
 
-    def test_follow_page(self):
-        """Тестирование подписчиков."""
-        # Проверяем, что страница подписок пуста
+    def test_follow_page_none(self):
+        """Проверяем, что страница подписок пуста."""
         response = self.authorized_client.get(reverse("posts:follow_index"))
         self.assertEqual(len(response.context["page_obj"]), 0)
 
-        # Проверка подписки на автора поста
+    def test_follow_author_post(self):
+        """Проверка подписки на автора поста."""
         Follow.objects.get_or_create(user=self.user, author=self.post.author)
-        r_2 = self.authorized_client.get(reverse("posts:follow_index"))
-        self.assertEqual(len(r_2.context["page_obj"]), 1)
+        response = self.authorized_client.get(reverse("posts:follow_index"))
+        self.assertEqual(len(response.context["page_obj"]), 1)
 
-        # Проверка подписки у юзера-фоловера
-        self.assertIn(self.post, r_2.context["page_obj"])
+    def test_unfollow_author_post(self):
+        """Проверка отписки от автора поста."""
+        Follow.objects.all().delete()
+        response = self.authorized_client.get(reverse("posts:follow_index"))
+        self.assertEqual(len(response.context["page_obj"]), 0)
 
-        # Проверка что пост не появился в избранных у юзера-обычного
+    def test_follow_user_followers(self):
+        """Проверка наличия подписки у позьзователя-подписчика."""
+        Follow.objects.get_or_create(user=self.user, author=self.post.author)
+        response = self.authorized_client.get(reverse("posts:follow_index"))
+        self.assertIn(self.post, response.context["page_obj"])
+
+    def test_follow_user_unfollow(self):
+        """Проверка отсутствия подписки у позьзователя-не подписчика."""
         outsider = User.objects.create(username="user_1")
         self.authorized_client.force_login(outsider)
         response = self.authorized_client.get(reverse("posts:follow_index"))
         self.assertNotIn(self.post, response.context["page_obj"])
-
-        # Проверка отписки от автора поста
-        Follow.objects.all().delete()
-        response = self.authorized_client.get(reverse("posts:follow_index"))
-        self.assertEqual(len(response.context["page_obj"]), 0)
 
 
 class PaginatorViewsTest(TestCase):

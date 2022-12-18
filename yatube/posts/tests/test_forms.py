@@ -44,17 +44,15 @@ class PostFormTests(TestCase):
             group=cls.group,
             image=cls.uploaded
         )
+        cls.guest_client = Client()
+        cls.user = User.objects.create(username="user")
+        cls.authorized_client = Client()
+        cls.authorized_client.force_login(cls.user)
 
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
         shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
-
-    def setUp(self):
-        self.guest_client = Client()
-        self.user = User.objects.create(username="user")
-        self.authorized_client = Client()
-        self.authorized_client.force_login(self.user)
 
     def test_valide_form_create_post(self):
         """Валидная форма создает новую запись в Post."""
@@ -98,34 +96,7 @@ class PostFormTests(TestCase):
         self.assertTrue(Post.objects.filter(text=form_data["text"]).exists())
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
-    def test_image_in_index_and_profile_page(self):
-        """Картинка передается на страницу index_group_list_and_profile."""
-        templates = (
-            reverse("posts:index"),
-            reverse("posts:group_list", kwargs={"slug": self.group.slug}),
-            reverse("posts:profile", kwargs={"username": self.post.author}),
-        )
-        for url in templates:
-            with self.subTest(url):
-                response = self.authorized_client.get(url)
-                context = response.context["page_obj"][0]
-                self.assertEqual(context.image, self.post.image)
-
-    def test_image_in_post_detail_page(self):
-        """Картинка передается на страницу post_detail."""
-        response = self.authorized_client.get(
-            reverse("posts:post_detail", kwargs={"post_id": self.post.id})
-        )
-        context = response.context["post"]
-        self.assertEqual(context.image, self.post.image)
-
-    def test_image_in_page(self):
-        """Проверяем что пост с картинкой создается в БД"""
-        self.assertTrue(Post.objects.filter(
-                        text=self.post.text,
-                        image=self.post.image).exists())
-
-    def test_comment_correct_context(self):
+    def test_create_comment_displayed_page_post(self):
         """После успешной отправки комментарий появляется на странице поста."""
         comments_count = Comment.objects.count()
         form_data = {

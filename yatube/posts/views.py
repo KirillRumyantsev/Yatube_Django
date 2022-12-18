@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 
-from .models import Post, Group, Comment, Follow, User
+from .models import Post, Group, Follow, User
 from .forms import PostForm, CommentForm
 from .utils import paginator_func
 
@@ -41,8 +41,8 @@ def profile(request, username):
 
 def post_detail(request, post_id):
     post = get_object_or_404(Post, id=post_id)
-    comments = Comment.objects.filter(post=post)
-    form = CommentForm(request.POST or None)
+    comments = post.comments.all()
+    form = CommentForm()
     context = {
         'post': post,
         'comments': comments,
@@ -62,6 +62,7 @@ def post_create(request):
     return render(request, 'posts/create_post.html', {'form': form})
 
 
+@login_required
 def post_edit(request, post_id):
     post = get_object_or_404(Post, id=post_id)
     if request.user != post.author:
@@ -69,7 +70,8 @@ def post_edit(request, post_id):
     form = PostForm(
         request.POST or None,
         files=request.FILES or None,
-        instance=post)
+        instance=post
+    )
     if form.is_valid():
         form.save()
         return redirect('posts:post_detail', post_id=post.id)
@@ -94,10 +96,7 @@ def add_comment(request, post_id):
 
 @login_required
 def follow_index(request):
-    follower = Follow.objects.filter(user=request.user).values_list(
-        "author_id", flat=True
-    )
-    post_list = Post.objects.filter(author_id__in=follower)
+    post_list = Post.objects.filter(author__following__user=request.user)
     page_obj = paginator_func(request, post_list)
     context = {
         'page_obj': page_obj
@@ -116,5 +115,5 @@ def profile_follow(request, username):
 @login_required
 def profile_unfollow(request, username):
     author = get_object_or_404(User, username=username)
-    Follow.objects.get(user=request.user, author=author).delete()
+    Follow.objects.filter(user=request.user, author=author).delete()
     return redirect("posts:follow_index")
