@@ -44,15 +44,16 @@ class PostFormTests(TestCase):
             group=cls.group,
             image=cls.uploaded
         )
-        cls.guest_client = Client()
-        cls.user = User.objects.create(username="user")
-        cls.authorized_client = Client()
-        cls.authorized_client.force_login(cls.user)
 
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
         shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+
+    def setUp(self):
+        self.guest_client = Client()
+        self.authorized_client = Client()
+        self.authorized_client.force_login(self.user)
 
     def test_valide_form_create_post(self):
         """Валидная форма создает новую запись в Post."""

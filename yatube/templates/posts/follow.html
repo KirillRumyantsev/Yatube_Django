@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block content %}
-{% include 'posts/includes/switcher.html' with show_follow_link=True %}
+{% include 'posts/includes/switcher.html' with follow=True %}
 {% load cache %} 
 {% cache 20 index_page page_obj%}
 

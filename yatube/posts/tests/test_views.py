@@ -23,6 +23,11 @@ class PostURLTests(TestCase):
             slug="test-slug",
             description="Тестовое описание",
         )
+        cls.group2 = Group.objects.create(
+            title="Тест группа",
+            slug="testing-slug",
+            description="Тестовое описание",
+        )
         cls.post = Post.objects.create(
             author=cls.user,
             text="Тестовый пост",
@@ -130,11 +135,10 @@ class PostURLTests(TestCase):
 
     def test_check_group_not_in_mistake_group_list_page(self):
         """Проверяем чтобы созданный Пост с группой не попап в чужую группу."""
-        res_1 = self.authorized_client.get(reverse("posts:group_list",
-                                           kwargs={"slug": self.group.slug}))
+        res_1 = self.authorized_client.get(reverse('posts:group_list',
+                                           kwargs={'slug': self.group2.slug}))
         context = res_1.context["page_obj"]
-        expected = Post.objects.exclude(group=self.post.group)
-        self.assertNotIn(expected, context)
+        self.assertNotIn(self.post, context)
 
     def test_nonexist_page_uses_correct_template(self):
         """Страница 404 отдаёт кастомный шаблон."""
@@ -175,26 +179,28 @@ class PostURLTests(TestCase):
         self.assertEqual(r_1, r_2)
         self.assertNotEqual(r_2, r_3)
 
-    def test_follow_page_none(self):
-        """Проверяем, что страница подписок пуста."""
-        response = self.authorized_client.get(reverse("posts:follow_index"))
-        self.assertEqual(len(response.context["page_obj"]), 0)
-
     def test_follow_author_post(self):
         """Проверка подписки на автора поста."""
-        Follow.objects.get_or_create(user=self.user, author=self.post.author)
-        response = self.authorized_client.get(reverse("posts:follow_index"))
-        self.assertEqual(len(response.context["page_obj"]), 1)
+        following_user = User.objects.create(username="following")
+        self.authorized_client.get(reverse("posts:profile_follow",
+                                           kwargs={'username':
+                                                   following_user}))
+        self.assertTrue(Follow.objects.filter(user=self.user,
+                                              author=following_user).exists())
 
     def test_unfollow_author_post(self):
         """Проверка отписки от автора поста."""
-        Follow.objects.all().delete()
-        response = self.authorized_client.get(reverse("posts:follow_index"))
-        self.assertEqual(len(response.context["page_obj"]), 0)
+        following_user = User.objects.create(username="following")
+        Follow.objects.create(user=self.user, author=following_user)
+        self.authorized_client.get(reverse("posts:profile_unfollow",
+                                           kwargs={'username':
+                                                   following_user}))
+        self.assertFalse(Follow.objects.filter(user=self.user,
+                                               author=following_user).exists())
 
     def test_follow_user_followers(self):
         """Проверка наличия подписки у позьзователя-подписчика."""
-        Follow.objects.get_or_create(user=self.user, author=self.post.author)
+        Follow.objects.create(user=self.user, author=self.post.author)
         response = self.authorized_client.get(reverse("posts:follow_index"))
         self.assertIn(self.post, response.context["page_obj"])
 

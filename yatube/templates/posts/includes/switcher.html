@@ -2,7 +2,6 @@
   <div class="container py-2">
     <article>
       <ul class="nav nav-tabs">
-        {% if show_follow_link %}
         <li class="nav-item">
           <a 
             class="nav-link {% if index %}active{% endif %}"
@@ -11,8 +10,6 @@
             Все авторы
           </a>
         </li>
-        {% endif %}
-        {% if show_index_link %} 
         <li class="nav-item">
           <a 
            class="nav-link {% if follow %}active{% endif %}"
@@ -21,7 +18,6 @@
             Избранные авторы
           </a>
         </li>
-        {% endif %}
      </ul>
     </article>  
   </div>
