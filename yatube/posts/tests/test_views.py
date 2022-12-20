@@ -134,7 +134,7 @@ class PostURLTests(TestCase):
                 self.assertIn(expected, form_field)
 
     def test_check_group_not_in_mistake_group_list_page(self):
-        """Проверяем чтобы созданный Пост с группой не попап в чужую группу."""
+        """Проверяем чтобы созданный Пост с группой не попал в чужую группу."""
         res_1 = self.authorized_client.get(reverse('posts:group_list',
                                            kwargs={'slug': self.group2.slug}))
         context = res_1.context["page_obj"]
