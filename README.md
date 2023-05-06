@@ -1,3 +1,10 @@
-# hw05_final
+# Сервис YatubeAPI
+![yatube](https://github.com/1kovalevskiy/api-yatube/actions/workflows/main.yml/badge.svg)
+![coverage](https://github.com/1kovalevskiy/api-yatube/blob/master/coverage.svg)
 
-[![CI](https://github.com/yandex-praktikum/hw05_final/actions/workflows/python-app.yml/badge.svg?branch=master)](https://github.com/yandex-praktikum/hw05_final/actions/workflows/python-app.yml)
+## Учебный сервис "Yatube" Личные блоги в виде API
+Сервис микроблогов, на котором можно создать свою страницу, вести свой блог, читать посты других пользователей, подписываться на интересующих авторов и комментировать их посты.
+
+Автор может выбрать имя и уникальный адрес для своей страницы.
+Есть возможность модерировать записи и блокировать пользователей, если начнут присылать спам.
+Записи можно отправить в сообщество и посмотреть там записи разных авторов.
