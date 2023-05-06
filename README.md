@@ -1,6 +1,4 @@
 # Сервис YatubeAPI
-![yatube](https://github.com/1kovalevskiy/api-yatube/actions/workflows/main.yml/badge.svg)
-![coverage](https://github.com/1kovalevskiy/api-yatube/blob/master/coverage.svg)
 
 ## Учебный сервис "Yatube" Личные блоги в виде API
 Сервис микроблогов, на котором можно создать свою страницу, вести свой блог, читать посты других пользователей, подписываться на интересующих авторов и комментировать их посты.
